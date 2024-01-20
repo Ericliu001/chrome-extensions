@@ -3,6 +3,7 @@ console.log('Content script loaded.');
 var observer; // Declare observer globally to reinitialize later
 var clickedButtons = new Set(); // Set to keep track of clicked buttons
 var timeoutID; // Global variable to store the timeout ID
+var reloadPageTimeoutID;
 
 
 function getRandomDelay(min, max) {
@@ -20,9 +21,12 @@ function startProcess() {
         setupObserver(observer);
     }, 3500);
 
-    // setTimeout(() => {
-    //     window.location.reload();
-    // }, 50000);
+    if (reloadPageTimeoutID) {
+        clearTimeout(reloadPageTimeoutID);
+    }
+    reloadPageTimeoutID = setTimeout(() => {
+        window.location.reload();
+    }, 30000);
 }
 
 function disconnectObserver() {
