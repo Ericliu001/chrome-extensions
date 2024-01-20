@@ -18,8 +18,10 @@ function startProcess() {
 function disconnectObserver() {
     if (observer) {
         observer.disconnect();
+        observer = null; // Dereference the observer
     }
 }
+
 
 function setupObserver(callback) {
     observer = new MutationObserver(callback);
