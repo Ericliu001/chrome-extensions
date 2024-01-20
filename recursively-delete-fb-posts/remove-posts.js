@@ -2,6 +2,8 @@ console.log('Content script loaded.');
 
 var observer; // Declare observer globally to reinitialize later
 var clickedButtons = new Set(); // Set to keep track of clicked buttons
+var timeoutID; // Global variable to store the timeout ID
+
 
 function getRandomDelay(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -9,10 +11,18 @@ function getRandomDelay(min, max) {
 
 function startProcess() {
     disconnectObserver(); // Disconnect any existing observer
-    setTimeout(() => {
+    // Clear the previous timeout if it exists
+    if (timeoutID) {
+        clearTimeout(timeoutID);
+    }
+    timeoutID = setTimeout(() => {
         observer = firstButtonHandler
         setupObserver(observer);
-    }, 5000);
+    }, 3500);
+
+    // setTimeout(() => {
+    //     window.location.reload();
+    // }, 50000);
 }
 
 function disconnectObserver() {
@@ -21,6 +31,7 @@ function disconnectObserver() {
         observer = null; // Dereference the observer
     }
 }
+
 
 
 function setupObserver(callback) {
@@ -70,7 +81,7 @@ function secondButtonHandler(mutations) {
     mutations.forEach(function (mutation) {
         if (!mutation.addedNodes) return;
         clickButton('span[dir="auto"]', 'Move to Recycle bin', () => {
-            observer.disconnect(); // Disconnect after second button click
+            disconnectObserver(); // Disconnect any existing observer
             setupObserver(thirdButtonHandler); // Setup observer for third button
             buttonFound = true;
         });
@@ -79,7 +90,7 @@ function secondButtonHandler(mutations) {
     if (!buttonFound) {
         // If 'Move to Recycle bin' button not found, try finding 'Hide from profile' button
         clickButton('span[dir="auto"]', 'Hide from profile', () => {
-            observer.disconnect(); // Disconnect after clicking 'Hide from profile'
+            disconnectObserver(); // Disconnect any existing observer
             setupObserver(thirdButtonHandler); // Setup observer for third button
         });
     }
@@ -90,7 +101,7 @@ function thirdButtonHandler(mutations) {
     mutations.forEach(function (mutation) {
         if (!mutation.addedNodes) return;
 
-        observer.disconnect(); // Disconnect the observer to avoid multiple triggers
+        disconnectObserver(); // Disconnect any existing observer
 
         clickButton('div[aria-label="Move"]', '', () => {
             startProcess(); // Restart the process

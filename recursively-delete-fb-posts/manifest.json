@@ -11,7 +11,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.facebook.com/*"],
-      "js": ["popup.js"]
+      "js": ["remove-posts.js"]
     }
   ]
 }
