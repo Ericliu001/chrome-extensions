@@ -10,8 +10,8 @@ function startProcess() {
     setupObserver(firstButtonHandler);
     var delay = getRandomDelay(3000, 10000); // Get a random delay between 3000ms (3s) and 10000ms (10s)
     setTimeout(() => {
-        window.location.reload(); // Refresh the page after random seconds
-    }, delay); // Wait for 3 seconds
+        window.location.reload(); 
+    }, delay); // Refresh the page after random seconds
 }
 
 function setupObserver(callback) {
@@ -52,14 +52,26 @@ function firstButtonHandler(mutations) {
 }
 
 function secondButtonHandler(mutations) {
+    let buttonFound = false;
+
     mutations.forEach(function (mutation) {
         if (!mutation.addedNodes) return;
         clickButton('span[dir="auto"]', 'Move to Recycle bin', () => {
             observer.disconnect(); // Disconnect after second button click
             setupObserver(thirdButtonHandler); // Setup observer for third button
+            buttonFound = true;
         });
     });
+
+    if (!buttonFound) {
+        // If 'Move to Recycle bin' button not found, try finding 'Hide from profile' button
+        clickButton('span[dir="auto"]', 'Hide from profile', () => {
+            observer.disconnect(); // Disconnect after clicking 'Hide from profile'
+            setupObserver(thirdButtonHandler); // Setup observer for third button
+        });
+    }
 }
+
 
 function thirdButtonHandler(mutations) {
     mutations.forEach(function (mutation) {
@@ -69,7 +81,6 @@ function thirdButtonHandler(mutations) {
 
         clickButton('div[aria-label="Move"]', '', () => {
             startProcess(); // Restart the process
-            window.location.reload(); // Refresh the page after restarting the process
         });
     });
 }
