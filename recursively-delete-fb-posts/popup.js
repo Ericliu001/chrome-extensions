@@ -1,17 +1,24 @@
 console.log('Content script loaded.');
 
 var observer; // Declare observer globally to reinitialize later
+var clickedButtons = new Set(); // Set to keep track of clicked buttons
 
 function getRandomDelay(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function startProcess() {
-    setupObserver(firstButtonHandler);
-    var delay = getRandomDelay(3000, 10000); // Get a random delay between 3000ms (3s) and 10000ms (10s)
+    disconnectObserver(); // Disconnect any existing observer
     setTimeout(() => {
-        window.location.reload(); 
-    }, delay); // Refresh the page after random seconds
+        observer = firstButtonHandler
+        setupObserver(observer);
+    }, 5000);
+}
+
+function disconnectObserver() {
+    if (observer) {
+        observer.disconnect();
+    }
 }
 
 function setupObserver(callback) {
@@ -26,9 +33,11 @@ function clickButton(selector, textContent, onSuccess) {
     var buttons = document.querySelectorAll(selector);
     for (let button of buttons) {
         if (textContent === '' || button.textContent.trim() === textContent) {
-            console.log('Button found. Clicking it:', selector, textContent);
-            button.click();
-            onSuccess();
+        
+                console.log('Button found. Clicking it:', selector, textContent);
+                button.click();
+                onSuccess();
+            
             break;
         }
     }
@@ -36,13 +45,15 @@ function clickButton(selector, textContent, onSuccess) {
 
 function checkForFirstButton() {
     var button = document.querySelector('div[aria-label="Actions for this post"]');
-    if (button) {
+    if (button && !clickedButtons.has(button)) {
+        clickedButtons.add(button); // Add button to clickedButtons set
         clickButton('div[aria-label="Actions for this post"]', '', () => {
-            observer.disconnect(); // Disconnect after first button click
+            disconnectObserver(); // Disconnect after first button click
             setupObserver(secondButtonHandler); // Setup observer for second button
         });
     }
 }
+
 
 function firstButtonHandler(mutations) {
     mutations.forEach(function (mutation) {
