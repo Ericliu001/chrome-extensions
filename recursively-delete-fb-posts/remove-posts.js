@@ -5,11 +5,6 @@ var clickedButtons = new Set(); // Set to keep track of clicked buttons
 var timeoutID; // Global variable to store the timeout ID
 var reloadPageTimeoutID;
 
-
-function getRandomDelay(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function startProcess() {
     disconnectObserver(); // Disconnect any existing observer
     // Clear the previous timeout if it exists
@@ -19,7 +14,7 @@ function startProcess() {
     timeoutID = setTimeout(() => {
         observer = firstButtonHandler
         setupObserver(observer);
-    }, 3500);
+    }, 3000);
 
     if (reloadPageTimeoutID) {
         clearTimeout(reloadPageTimeoutID);
@@ -95,7 +90,7 @@ function secondButtonHandler(mutations) {
         // If 'Move to Recycle bin' button not found, try finding 'Hide from profile' button
         clickButton('span[dir="auto"]', 'Hide from profile', () => {
             disconnectObserver(); // Disconnect any existing observer
-            setupObserver(thirdButtonHandler); // Setup observer for third button
+            startProcess(); // Restart the process
         });
     }
 }
