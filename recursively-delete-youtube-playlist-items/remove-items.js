@@ -20,6 +20,16 @@ function startProcess() {
 function processButtons(buttons, index) {
     if (index >= buttons.length) {
         console.log('Finished processing all buttons.');
+        if (buttons.length > 0) {
+            console.log('Restart removing items in 5 seconds...');
+            setTimeout(() => {
+                startProcess();
+            }, 750);
+            
+        } else {
+            console.log('No buttons to process.');
+            window.location.reload();
+        }
         return;
     }
 
@@ -50,12 +60,12 @@ function processButtons(buttons, index) {
             // Wait for any animations or updates to complete before moving to the next button
             setTimeout(() => {
                 processButtons(buttons, index + 1); // Process the next button
-            }, 500);
+            }, 750);
         } else {
             console.warn(`"Remove from Watch later" button not found for dropdown ${index + 1}. Retrying...`);
             setTimeout(() => {
                 processButtons(buttons, index + 1); // Retry the next button
-            }, 1000);
+            }, 1500);
         }
     }, 1000); // Increased delay for the dropdown to render
 }
