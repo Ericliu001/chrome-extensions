@@ -1,84 +1,64 @@
 console.log('Content script loaded.');
 
-var observer; // Declare observer globally to reinitialize later
 var clickedButtons = new Set(); // Set to keep track of clicked buttons
-var timeoutID; // Global variable to store the timeout ID
-var reloadPageTimeoutID;
 
 function startProcess() {
-    disconnectObserver(); // Disconnect any existing observer
-    // Clear the previous timeout if it exists
-    if (timeoutID) {
-        clearTimeout(timeoutID);
-    }
-    timeoutID = setTimeout(() => {
-        observer = firstButtonHandler;
-        setupObserver(observer);
-    }, 3000);
+    console.log('Starting process...');
+    const buttons = document.querySelectorAll(
+        'div#menu ytd-menu-renderer yt-icon-button.dropdown-trigger[aria-label="yt-icon-button"]'
+    );
 
-    if (reloadPageTimeoutID) {
-        clearTimeout(reloadPageTimeoutID);
+    if (buttons.length === 0) {
+        console.warn('No dropdown buttons found.');
+        return;
     }
-    reloadPageTimeoutID = setTimeout(() => {
-        window.location.reload();
-    }, 30000);
+
+    console.log(`Found ${buttons.length} dropdown buttons.`);
+    processButtons(buttons, 0); // Start processing buttons from the first one
 }
 
-function disconnectObserver() {
-    if (observer) {
-        observer.disconnect();
-        observer = null; // Dereference the observer
+function processButtons(buttons, index) {
+    if (index >= buttons.length) {
+        console.log('Finished processing all buttons.');
+        return;
     }
-}
 
-function setupObserver(callback) {
-    observer = new MutationObserver(callback);
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-}
+    const button = buttons[index];
 
-function clickButton(selector, textContent, onSuccess) {
-    var buttons = document.querySelectorAll(selector);
-    for (let button of buttons) {
-        if (textContent === '' || button.textContent.trim() === textContent) {
-            console.log('Button found. Clicking it:', selector, textContent);
-            button.click();
-            if (onSuccess) onSuccess();
-            break;
+    // Check if the button has already been clicked
+    if (clickedButtons.has(button)) {
+        console.log(`Button ${index + 1} already processed. Skipping.`);
+        processButtons(buttons, index + 1);
+        return;
+    }
+
+    clickedButtons.add(button);
+    console.log(`Clicking dropdown button ${index + 1}...`);
+    button.click(); // Click the dropdown button
+
+    // Wait for the dropdown menu to appear
+    setTimeout(() => {
+        // Locate the "Remove from Watch later" button in the dropdown
+        const removeButton = Array.from(
+            document.querySelectorAll('ytd-menu-service-item-renderer yt-formatted-string')
+        ).find((el) => el.textContent.trim() === 'Remove from Watch later');
+
+        if (removeButton) {
+            console.log(`Clicking "Remove from Watch later" button for dropdown ${index + 1}...`);
+            removeButton.click(); // Click the "Remove from Watch later" button
+
+            // Wait for any animations or updates to complete before moving to the next button
+            setTimeout(() => {
+                processButtons(buttons, index + 1); // Process the next button
+            }, 500);
+        } else {
+            console.warn(`"Remove from Watch later" button not found for dropdown ${index + 1}. Retrying...`);
+            setTimeout(() => {
+                processButtons(buttons, index + 1); // Retry the next button
+            }, 1000);
         }
-    }
+    }, 1000); // Increased delay for the dropdown to render
 }
 
-function checkForFirstButton() {
-    var button = document.querySelector('yt-icon-button.dropdown-trigger[aria-label="yt-icon-button"]');
-    if (button && !clickedButtons.has(button)) {
-        clickedButtons.add(button); // Add button to clickedButtons set
-        button.click(); // Click the dropdown button
-        console.log('Dropdown button clicked.');
-        setTimeout(() => {
-            checkForSecondButton();
-        }, 500); // Delay to allow the dropdown to render
-    }
-}
-
-function checkForSecondButton() {
-    var button = document.querySelector('ytd-menu-service-item-renderer[role="menuitem"] tp-yt-paper-item[role="option"]');
-    if (button && !clickedButtons.has(button)) {
-        clickedButtons.add(button); // Add button to clickedButtons set
-        clickButton('ytd-menu-service-item-renderer[role="menuitem"] tp-yt-paper-item[role="option"]', '', () => {
-            console.log('Second button clicked.');
-            startProcess(); // Restart the process after clicking the second button
-        });
-    }
-}
-
-function firstButtonHandler(mutations) {
-    mutations.forEach(function (mutation) {
-        if (!mutation.addedNodes) return;
-        checkForFirstButton();
-    });
-}
-
-startProcess(); // Start the initial process
+// Start the process when the script is loaded
+startProcess();
