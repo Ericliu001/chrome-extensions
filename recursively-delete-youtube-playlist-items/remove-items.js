@@ -19,17 +19,11 @@ function startProcess() {
 
 function processButtons(buttons, index) {
     if (index >= buttons.length) {
-        console.log('Finished processing all buttons.');
-        if (buttons.length > 0) {
-            console.log('Restart removing items in 5 seconds...');
-            setTimeout(() => {
-                startProcess();
-            }, 750);
-            
-        } else {
-            console.log('No buttons to process.');
+        console.log('Finished processing all buttons. Reloading the page in 5 seconds...');
+
+        reloadPageTimeoutID = setTimeout(() => {
             window.location.reload();
-        }
+        }, 5000);
         return;
     }
 
@@ -71,4 +65,6 @@ function processButtons(buttons, index) {
 }
 
 // Start the process when the script is loaded
-startProcess();
+reloadPageTimeoutID = setTimeout(() => {
+    startProcess();
+}, 10000);
