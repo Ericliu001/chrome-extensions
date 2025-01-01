@@ -1,0 +1,17 @@
+{
+  "name": "Scroll FB Timeline",
+  "description": "Base Level Extension",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "hello.html",
+    "default_icon": "profile_image.png"
+  },
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/playlist?list=WL"],
+      "js": ["remove-items.js"]
+    }
+  ]
+}
