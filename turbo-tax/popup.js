@@ -17,6 +17,8 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         clickEditButton(index);
 
                         setTimeout(() => {
+                            parseDateAcquired();
+                            parseDateSold();
                             readProceeds();
                             inputCostBasis();
                             clickBackButton(index);
@@ -58,6 +60,49 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             console.log("Input Value:", inputField.value);
                         } else {
                             console.warn("Input field not found!");
+                        }
+                    }
+
+                    function parseDateAcquired() {
+                        // Find the input field by its ID
+                        const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-5-choice-IsDateAcquiredALiteralInd-choices-0-choiceDetail-input-DateAcquiredDtPP");
+
+                        if (inputField) {
+                            // Get the value of the input field
+                            const dateString = inputField.value; // Example: "01/16/2024"
+
+                            // Parse the date string (assuming it's in MM/DD/YYYY format)
+                            const parsedDate = new Date(dateString);
+
+                            if (!isNaN(parsedDate.getTime())) {
+                                console.log("Parsed Acquire Date:", parsedDate);
+                            } else {
+                                console.log("Invalid Date");
+                            }
+                        } else {
+                            console.log("Input field not found");
+                        }
+                    }
+
+                    function parseDateSold() {
+                        // Find the input field by its ID
+                        const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-7-input-DateSoldOrDisposedDtPP");
+
+
+                        if (inputField) {
+                            // Get the value of the input field
+                            const dateString = inputField.value; // Example: "01/16/2024"
+
+                            // Parse the date string (assuming it's in MM/DD/YYYY format)
+                            const parsedDate = new Date(dateString);
+
+                            if (!isNaN(parsedDate.getTime())) {
+                                console.log("Parsed Sold Date:", parsedDate);
+                            } else {
+                                console.log("Invalid Date");
+                            }
+                        } else {
+                            console.log("Input field not found");
                         }
                     }
 
