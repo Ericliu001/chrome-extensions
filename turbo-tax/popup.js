@@ -122,8 +122,6 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
            
                     window[stopFlagVarName] = false; // Store stop flag in the window object
 
-                    const clickedButtons = new Set();
-
                     function processTransaction(index) {
                         clickEditButton(index);
 
@@ -153,7 +151,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
                       
                         if (index >= editItemButtons.length || window[stopFlagVarName]) {
-                            console.log('Process stopped or completed.');
+                            console.log('Process completed.');
                             return;
                         }
 
@@ -162,18 +160,11 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             return;
                         }
 
-                        console.log(`Processing edit button: ${index}/${editItemButtons.length}.`);
+                        console.log(`Processing edit button: ${index + 1}/${editItemButtons.length}.`);
 
 
                         const editButton = editItemButtons[index];
-
-                        if (clickedButtons.has(editButton)) {
-                            console.log(`Button ${index + 1} already processed. Skipping.`);
-                            processTransaction(index + 1);
-                            return;
-                        }
-
-                        clickedButtons.add(editButton);
+                        
                         console.log(`Clicking edit button ${index + 1}...`);
                         editButton.click();
                     }
