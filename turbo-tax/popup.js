@@ -151,6 +151,11 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     }
                     function clickEditButton(index) {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
+                      
+                        if (index >= editItemButtons.length || window[stopFlagVarName]) {
+                            console.log('Process stopped or completed.');
+                            return;
+                        }
 
                         if (editItemButtons.length === 0) {
                             console.warn('No edit buttons found.');
@@ -159,10 +164,6 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                         console.log(`Processing edit button: ${index}/${editItemButtons.length}.`);
 
-                        if (index >= editItemButtons.length || window[stopFlagVarName]) {
-                            console.log('Process stopped or completed.');
-                            return;
-                        }
 
                         const editButton = editItemButtons[index];
 
@@ -265,7 +266,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         // Wait for 5 seconds before calling processButtons
                         setTimeout(() => {
                             processTransaction(index + 1);
-                        }, 3000);
+                        }, 5000);
                     }
 
                     function startProcess() {
