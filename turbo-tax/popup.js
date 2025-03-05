@@ -13,23 +13,32 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                     const clickedButtons = new Set();
 
-                    function processButtons(buttons, index) {
-                        if (index >= buttons.length || window[stopFlagVarName]) {
+                    function processButtons(index) {
+                        const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
+
+                        if (editItemButtons.length === 0) {
+                            console.warn('No edit buttons found.');
+                            return;
+                        }
+
+                        console.log(`Processing edit button: ${index}/${editItemButtons.length}.`);
+
+                        if (index >= editItemButtons.length || window[stopFlagVarName]) {
                             console.log('Process stopped or completed.');
                             return;
                         }
 
-                        const button = buttons[index];
+                        const editButton = editItemButtons[index];
 
-                        if (clickedButtons.has(button)) {
+                        if (clickedButtons.has(editButton)) {
                             console.log(`Button ${index + 1} already processed. Skipping.`);
-                            processButtons(buttons, index + 1);
+                            processButtons(index + 1);
                             return;
                         }
 
-                        clickedButtons.add(button);
+                        clickedButtons.add(editButton);
                         console.log(`Clicking edit button ${index + 1}...`);
-                        button.click();
+                        editButton.click();
 
                         setTimeout(() => {
                             if (window[stopFlagVarName]) {
@@ -41,23 +50,21 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             if (backButton) {
                                 console.log(`Found "Back" button for edit ${index + 1}...`);
                                 backButton.click();
+                            } else {
+                                console.warn(`"Back" button not found for edit ${index + 1}.`);
+                                return;
                             }
 
-                            processButtons(buttons, index + 1);
-                        }, 1500);
+                            // Wait for 5 seconds before calling processButtons
+                            setTimeout(() => {
+                                processButtons(index + 1);
+                            }, 3000); 
+                        }, 5000);
                     }
 
                     function startProcess() {
                         console.log('Starting process...');
-                        const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
-
-                        if (editItemButtons.length === 0) {
-                            console.warn('No edit buttons found.');
-                            return;
-                        }
-
-                        console.log(`Found edit buttons: ${editItemButtons.length}.`);
-                        processButtons([...editItemButtons], 0); // Start processing
+                        processButtons(0); // Start processing
                     }
 
                     startProcess();
