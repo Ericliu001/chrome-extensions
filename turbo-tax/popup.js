@@ -13,7 +13,17 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                     const clickedButtons = new Set();
 
-                    function processButtons(index) {
+                    function processTransaction(index) {
+                        clickEditButton(index);
+
+                        setTimeout(() => {
+                            readProceeds();
+                            inputCostBasis();
+                            clickBackButton(index);
+                        }, 5000);
+                    }
+
+                    function clickEditButton(index) {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
 
                         if (editItemButtons.length === 0) {
@@ -32,39 +42,62 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                         if (clickedButtons.has(editButton)) {
                             console.log(`Button ${index + 1} already processed. Skipping.`);
-                            processButtons(index + 1);
+                            processTransaction(index + 1);
                             return;
                         }
 
                         clickedButtons.add(editButton);
                         console.log(`Clicking edit button ${index + 1}...`);
                         editButton.click();
+                    }
 
+                    function readProceeds() {
+                        const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-ProceedsAmtPP');
+
+                        if (inputField) {
+                            console.log("Input Value:", inputField.value);
+                        } else {
+                            console.warn("Input field not found!");
+                        }
+                    }
+
+                    function inputCostBasis() {
+                        const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-CostBasisAmtPP');
+
+                        if (inputField) {
+                            inputField.value = "1234.56";  // Set value
+                            inputField.dispatchEvent(new Event('input', { bubbles: true })); // Trigger input event
+                            console.log("Value set to 1234.56");
+                        } else {
+                            console.warn("Input field not found!");
+                        }
+                    }
+
+                    function clickBackButton(index) {
+
+                        if (window[stopFlagVarName]) {
+                            console.log('Process stopped mid-execution.');
+                            return;
+                        }
+
+                        const backButton = document.querySelector('button[aria-label="Back"]');
+                        if (backButton) {
+                            console.log(`Found "Back" button for edit ${index + 1}...`);
+                            backButton.click();
+                        } else {
+                            console.warn(`"Back" button not found for edit ${index + 1}.`);
+                            return;
+                        }
+
+                        // Wait for 5 seconds before calling processButtons
                         setTimeout(() => {
-                            if (window[stopFlagVarName]) {
-                                console.log('Process stopped mid-execution.');
-                                return;
-                            }
-
-                            const backButton = document.querySelector('button[aria-label="Back"]');
-                            if (backButton) {
-                                console.log(`Found "Back" button for edit ${index + 1}...`);
-                                backButton.click();
-                            } else {
-                                console.warn(`"Back" button not found for edit ${index + 1}.`);
-                                return;
-                            }
-
-                            // Wait for 5 seconds before calling processButtons
-                            setTimeout(() => {
-                                processButtons(index + 1);
-                            }, 3000); 
-                        }, 5000);
+                            processTransaction(index + 1);
+                        }, 3000);
                     }
 
                     function startProcess() {
                         console.log('Starting process...');
-                        processButtons(0); // Start processing
+                        processTransaction(0); // Start processing
                     }
 
                     startProcess();
