@@ -1,5 +1,6 @@
 let stopProcessing = false; // Global flag to stop the process
 let csvDataArray = []; // Store parsed CSV data
+let transactionMap = new Map(); // Store transaction data
 
 document.addEventListener("DOMContentLoaded", function () {
     const fileInput = document.getElementById("csvFileInput");
@@ -7,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const outputElement = document.getElementById("output");
 
     processButton.addEventListener("click", function () {
+        console.log("Script loaded and processing...");
         const file = fileInput.files[0]; // Get selected file
         if (!file) {
             alert("Please select a CSV file.");
@@ -21,10 +23,60 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         reader.readAsText(file);
     });
-
+    
     function parseCSV(csv) {
         const rows = csv.split("\n").map(row => row.split(","));
-        console.log("Parsed CSV:", rows);
+        
+        if (rows.length < 2) {
+            console.warn("CSV is empty or improperly formatted.");
+            return;
+        }
+        
+        const headers = rows[0].map(header => header.trim()); // Extract headers and trim spaces
+        const data = [];
+        
+        for (let i = 1; i < rows.length; i++) {
+            const values = rows[i].map(value => value.trim()); // Trim spaces from each value
+            
+            let rowObject = {};
+            headers.forEach((header, index) => {
+                rowObject[header] = values[index];
+            });
+            
+            data.push(rowObject);
+        }
+        
+        csvDataArray = data; // Store parsed data globally
+        console.log("Creating transaction map...");
+        transactionMap = createTransactionMap(data);
+    }
+
+    /**
+     * 
+     * @param {Array} csvDataArray 
+     * @returns {Map<String, Number>} Transaction map with key as a string and value as a number
+     */
+    function createTransactionMap(csvDataArray) {
+        let transactionMap = new Map();
+    
+        csvDataArray.forEach(row => {
+            // Ensure required keys exist before constructing the map
+            if (row.DateAcquired && row.DateSold && row.Proceeds && row.CostBasis) {
+                let dateAcquired = new Date(row.DateAcquired); // Convert to Date object
+                let dateSold = new Date(row.DateSold); // Convert to Date object
+                let proceeds = parseFloat(row.Proceeds); // Convert to Number
+    
+                if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
+                    let key = `${dateAcquired.getDate()}_${dateSold.getDate()}_${proceeds}`;
+                    let value = parseFloat(row.CostBasis); // Convert to Number
+    
+                    transactionMap.set(key, value);
+                }
+            }
+        });
+    
+        console.log(`Transaction Map: ${transactionMap.entries()}`);
+        return transactionMap;
     }
 });
 

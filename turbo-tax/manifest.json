@@ -9,6 +9,6 @@
   },
   "permissions": ["scripting", "activeTab"],
   "host_permissions": [
-    "https://us-west-2.turbotaxonline.intuit.com/*"
+    "*://*.turbotaxonline.intuit.com/*"
   ]
 }
