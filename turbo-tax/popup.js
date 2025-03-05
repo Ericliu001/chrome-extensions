@@ -2,7 +2,11 @@ let stopProcessing = false; // Global flag to stop the process
 let csvDataArray = []; // Store parsed CSV data
 
 
-
+/**
+ * CSV format:
+ * Term,Description,CUSIP,Quantity,DateAcquired,DateSold,Proceeds,CostBasis,WashSaleLoss
+ * Short Term,UBER TECHNOLOGIES INC,90353T100,36.000000,01/16/24,01/17/24,2262.23,2291.40,29.17
+ */
 document.addEventListener("DOMContentLoaded", async function () {
     const fileInput = document.getElementById("csvFileInput");
     const processButton = document.getElementById("processCsvBtn");
