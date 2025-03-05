@@ -119,21 +119,32 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                 target: { tabId: tabs[0].id },
                 func: (stopFlagVarName, transactionMap) => {
                     console.log("Transaction Map inside executeScript:", transactionMap); // ✅ Debugging log
-           
+
                     window[stopFlagVarName] = false; // Store stop flag in the window object
 
                     function processTransaction(index) {
                         clickEditButton(index);
 
                         setTimeout(() => {
+                            selectTypeOfInvestmentRSU();
                             let dateAcquired = parseDateAcquired();
                             let dateSold = parseDateSold();
                             let proceeds = readProceeds();
-                            // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
                             let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
                             inputCostBasis(key);
                             clickBackButton(index);
                         }, 5000);
+                    }
+
+                    function selectTypeOfInvestmentRSU() {
+                        // Locate the select element by its unique data attribute or another selector
+                        const selectElem = document.querySelector('[data-automation-id="stk-transaction-summary-entry-views-0-fields-0-staticSwitch-1-choice-InvestmentType"]');
+
+                        // Set the value to the RSU option's value
+                        selectElem.value = "stk-transaction-summary-entry-views-0-fields-0-staticSwitch-1-choice-InvestmentType-choices-3";
+
+                        // Dispatch a change event to notify any listeners of the update
+                        selectElem.dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
                     function generateTransactionKey(dateAcquired, dateSold, proceeds) {
@@ -149,7 +160,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     }
                     function clickEditButton(index) {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
-                      
+
                         if (index >= editItemButtons.length || window[stopFlagVarName]) {
                             console.log('Process completed.');
                             return;
@@ -164,7 +175,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
 
                         const editButton = editItemButtons[index];
-                        
+
                         console.log(`Clicking edit button ${index + 1}...`);
                         editButton.click();
                     }
