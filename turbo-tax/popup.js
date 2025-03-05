@@ -1,4 +1,33 @@
 let stopProcessing = false; // Global flag to stop the process
+let csvDataArray = []; // Store parsed CSV data
+
+document.addEventListener("DOMContentLoaded", function () {
+    const fileInput = document.getElementById("csvFileInput");
+    const processButton = document.getElementById("processCsvBtn");
+    const outputElement = document.getElementById("output");
+
+    processButton.addEventListener("click", function () {
+        const file = fileInput.files[0]; // Get selected file
+        if (!file) {
+            alert("Please select a CSV file.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const csvContent = event.target.result;
+            outputElement.textContent = csvContent; // Display raw CSV data
+            parseCSV(csvContent);
+        };
+        reader.readAsText(file);
+    });
+
+    function parseCSV(csv) {
+        const rows = csv.split("\n").map(row => row.split(","));
+        console.log("Parsed CSV:", rows);
+    }
+});
+
 
 document.getElementById('startProcessBtn').addEventListener('click', () => {
     stopProcessing = false; // Reset stop flag
