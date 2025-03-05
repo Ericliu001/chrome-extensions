@@ -1,6 +1,5 @@
 let stopProcessing = false; // Global flag to stop the process
 let csvDataArray = []; // Store parsed CSV data
-let transactionMap = new Map(); // Store transaction data
 
 document.addEventListener("DOMContentLoaded", function () {
     const fileInput = document.getElementById("csvFileInput");
@@ -23,60 +22,59 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         reader.readAsText(file);
     });
-    
+
     function parseCSV(csv) {
         const rows = csv.split("\n").map(row => row.split(","));
-        
+
         if (rows.length < 2) {
             console.warn("CSV is empty or improperly formatted.");
             return;
         }
-        
+
         const headers = rows[0].map(header => header.trim()); // Extract headers and trim spaces
         const data = [];
-        
+
         for (let i = 1; i < rows.length; i++) {
             const values = rows[i].map(value => value.trim()); // Trim spaces from each value
-            
+
             let rowObject = {};
             headers.forEach((header, index) => {
                 rowObject[header] = values[index];
             });
-            
+
             data.push(rowObject);
         }
-        
+
         csvDataArray = data; // Store parsed data globally
-        console.log("Creating transaction map...");
-        transactionMap = createTransactionMap(data);
     }
 
     /**
      * 
      * @param {Array} csvDataArray 
-     * @returns {Map<String, Number>} Transaction map with key as a string and value as a number
      */
     function createTransactionMap(csvDataArray) {
-        let transactionMap = new Map();
-    
+        let transactionObject = {}; // Use an object instead of a Map
+
         csvDataArray.forEach(row => {
             // Ensure required keys exist before constructing the map
             if (row.DateAcquired && row.DateSold && row.Proceeds && row.CostBasis) {
                 let dateAcquired = new Date(row.DateAcquired); // Convert to Date object
                 let dateSold = new Date(row.DateSold); // Convert to Date object
                 let proceeds = parseFloat(row.Proceeds); // Convert to Number
-    
+
                 if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
                     let key = `${dateAcquired.getDate()}_${dateSold.getDate()}_${proceeds}`;
                     let value = parseFloat(row.CostBasis); // Convert to Number
-    
-                    transactionMap.set(key, value);
+
+                    transactionObject[key] = value;
                 }
             }
         });
-    
-        console.log(`Transaction Map: ${transactionMap.entries()}`);
-        return transactionMap;
+
+        // Store transaction data in chrome.storage.local
+        chrome.storage.local.set({ transactionMap: transactionObject }, () => {
+            console.log("Transaction Map saved:", transactionObject);
+        });
     }
 });
 
@@ -98,10 +96,11 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         clickEditButton(index);
 
                         setTimeout(() => {
-                            parseDateAcquired();
-                            parseDateSold();
-                            readProceeds();
-                            inputCostBasis();
+                            let dateAcquired = parseDateAcquired();
+                            let dateSold = parseDateSold();
+                            let proceeds = readProceeds();
+                            let key = `${dateAcquired.getDate()}_${dateSold.getDate()}_${proceeds}`;
+                            inputCostBasis(key);
                             clickBackButton(index);
                         }, 5000);
                     }
@@ -139,63 +138,64 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                         if (inputField) {
                             console.log("Input Value:", inputField.value);
+                            return inputField.value
                         } else {
                             console.warn("Input field not found!");
+                            return null;
                         }
                     }
 
                     function parseDateAcquired() {
-                        // Find the input field by its ID
                         const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-5-choice-IsDateAcquiredALiteralInd-choices-0-choiceDetail-input-DateAcquiredDtPP");
 
-                        if (inputField) {
-                            // Get the value of the input field
-                            const dateString = inputField.value; // Example: "01/16/2024"
-
-                            // Parse the date string (assuming it's in MM/DD/YYYY format)
+                        if (inputField && inputField.value) {
+                            const dateString = inputField.value.trim();
                             const parsedDate = new Date(dateString);
 
                             if (!isNaN(parsedDate.getTime())) {
                                 console.log("Parsed Acquire Date:", parsedDate);
-                            } else {
-                                console.log("Invalid Date");
+                                return parsedDate;  // ✅ Return valid date
                             }
-                        } else {
-                            console.log("Input field not found");
                         }
+
+                        console.warn("Invalid or missing DateAcquired.");
+                        return null;  // ✅ Return null instead of undefined
                     }
 
                     function parseDateSold() {
-                        // Find the input field by its ID
                         const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-7-input-DateSoldOrDisposedDtPP");
 
-
-                        if (inputField) {
-                            // Get the value of the input field
-                            const dateString = inputField.value; // Example: "01/16/2024"
-
-                            // Parse the date string (assuming it's in MM/DD/YYYY format)
+                        if (inputField && inputField.value) {
+                            const dateString = inputField.value.trim();
                             const parsedDate = new Date(dateString);
 
                             if (!isNaN(parsedDate.getTime())) {
                                 console.log("Parsed Sold Date:", parsedDate);
-                            } else {
-                                console.log("Invalid Date");
+                                return parsedDate;  // ✅ Return valid date
                             }
-                        } else {
-                            console.log("Input field not found");
                         }
+
+                        console.warn("Invalid or missing DateSold.");
+                        return null;  // ✅ Return null instead of undefined
                     }
 
-                    function inputCostBasis() {
+                    function inputCostBasis(key) {
                         const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-CostBasisAmtPP');
 
-                        if (inputField) {
-                            inputField.value = "1234.56";  // Set value
-                            inputField.dispatchEvent(new Event('input', { bubbles: true })); // Trigger input event
-                            console.log("Value set to 1234.56");
-                        } else {
+                        if (!inputField) {
                             console.warn("Input field not found!");
+                            return;
+                        }
+
+                        const costBasis = transactionMap.get(key); // Get value from the map
+
+                        if (costBasis !== undefined) {
+                            inputField.value = costBasis;  // ✅ Set value from transactionMap
+                            inputField.dispatchEvent(new Event('input', { bubbles: true })); // ✅ Trigger input event
+
+                            console.log(`Value set to: ${costBasis}`); // ✅ Log actual value
+                        } else {
+                            console.warn(`Key "${key}" not found in transactionMap.`);
                         }
                     }
 
