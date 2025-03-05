@@ -1,12 +1,14 @@
 let stopProcessing = false; // Global flag to stop the process
 let csvDataArray = []; // Store parsed CSV data
 
-document.addEventListener("DOMContentLoaded", function () {
+
+
+document.addEventListener("DOMContentLoaded", async function () {
     const fileInput = document.getElementById("csvFileInput");
     const processButton = document.getElementById("processCsvBtn");
     const outputElement = document.getElementById("output");
 
-    processButton.addEventListener("click", function () {
+    processButton.addEventListener("click", async function () {
         console.log("Script loaded and processing...");
         const file = fileInput.files[0]; // Get selected file
         if (!file) {
@@ -15,15 +17,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const reader = new FileReader();
-        reader.onload = function (event) {
+        reader.onload = async function (event) {
             const csvContent = event.target.result;
             outputElement.textContent = csvContent; // Display raw CSV data
-            parseCSV(csvContent);
+            await parseCSV(csvContent);
+            await createTransactionMap(csvDataArray);
         };
         reader.readAsText(file);
     });
 
-    function parseCSV(csv) {
+    async function parseCSV(csv) {
         const rows = csv.split("\n").map(row => row.split(","));
 
         if (rows.length < 2) {
@@ -52,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * 
      * @param {Array} csvDataArray 
      */
-    function createTransactionMap(csvDataArray) {
+    async function createTransactionMap(csvDataArray) {
         let transactionObject = {}; // Use an object instead of a Map
 
         csvDataArray.forEach(row => {
@@ -63,7 +66,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 let proceeds = parseFloat(row.Proceeds); // Convert to Number
 
                 if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
-                    let key = `${dateAcquired.getDate()}_${dateSold.getDate()}_${proceeds}`;
+                    // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
+                    let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
                     let value = parseFloat(row.CostBasis); // Convert to Number
 
                     transactionObject[key] = value;
@@ -72,9 +76,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // Store transaction data in chrome.storage.local
-        chrome.storage.local.set({ transactionMap: transactionObject }, () => {
+        await chrome.storage.session.set({ transactionMap: transactionObject }, () => {
             console.log("Transaction Map saved:", transactionObject);
         });
+    }
+
+    function generateTransactionKey(dateAcquired, dateSold, proceeds) {
+        if (!dateAcquired || !dateSold || isNaN(proceeds)) {
+            console.warn("Invalid key parameters:", { dateAcquired, dateSold, proceeds });
+            return null;
+        }
+        return `${getFormattedDate(dateAcquired)}_${getFormattedDate(dateSold)}_${proceeds}`;
+    }
+
+    function getFormattedDate(date = new Date()) {
+        return `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}_${String(date.getDate()).padStart(2, '0')}`;
     }
 });
 
@@ -83,11 +99,23 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
     stopProcessing = false; // Reset stop flag
     console.log('Extension button clicked.');
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
         if (tabs[0]) {
+
+            // ✅ Load saved transaction data first
+            let { transactionMap } = await chrome.storage.session.get(['transactionMap']);
+            if (!transactionMap) {
+                console.warn("No transaction data found in storage.");
+                transactionMap = {}; // Initialize an empty object to prevent errors
+            }
+            console.log("Transaction Map loaded:", transactionMap);
+
+
             chrome.scripting.executeScript({
                 target: { tabId: tabs[0].id },
-                func: (stopFlagVarName) => {
+                func: (stopFlagVarName, transactionMap) => {
+                    console.log("Transaction Map inside executeScript:", transactionMap); // ✅ Debugging log
+           
                     window[stopFlagVarName] = false; // Store stop flag in the window object
 
                     const clickedButtons = new Set();
@@ -99,12 +127,24 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             let dateAcquired = parseDateAcquired();
                             let dateSold = parseDateSold();
                             let proceeds = readProceeds();
-                            let key = `${dateAcquired.getDate()}_${dateSold.getDate()}_${proceeds}`;
+                            // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
+                            let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
                             inputCostBasis(key);
                             clickBackButton(index);
                         }, 5000);
                     }
 
+                    function generateTransactionKey(dateAcquired, dateSold, proceeds) {
+                        if (!dateAcquired || !dateSold || isNaN(proceeds)) {
+                            console.warn("Invalid key parameters:", { dateAcquired, dateSold, proceeds });
+                            return null;
+                        }
+                        return `${getFormattedDate(dateAcquired)}_${getFormattedDate(dateSold)}_${proceeds}`;
+                    }
+
+                    function getFormattedDate(date = new Date()) {
+                        return `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}_${String(date.getDate()).padStart(2, '0')}`;
+                    }
                     function clickEditButton(index) {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
 
@@ -138,7 +178,8 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                         if (inputField) {
                             console.log("Input Value:", inputField.value);
-                            return inputField.value
+                            let proceeds = parseFloat(inputField.value.replace(/[^0-9.-]+/g, "")); // Convert to Number
+                            return proceeds
                         } else {
                             console.warn("Input field not found!");
                             return null;
@@ -187,7 +228,9 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             return;
                         }
 
-                        const costBasis = transactionMap.get(key); // Get value from the map
+                        console.log(`Setting value for key: ${key}`);
+                        console.log(`Transaction Map:`, transactionMap);
+                        const costBasis = transactionMap[key]; // Get value from the map
 
                         if (costBasis !== undefined) {
                             inputField.value = costBasis;  // ✅ Set value from transactionMap
@@ -228,7 +271,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                     startProcess();
                 },
-                args: ['stopProcessing']
+                args: ['stopProcessing', transactionMap]
             });
         }
     });
