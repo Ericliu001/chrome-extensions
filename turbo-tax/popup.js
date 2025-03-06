@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const outputElement = document.getElementById("output");
 
     processButton.addEventListener("click", async function () {
-        console.log("Script loaded and processing...");
+        console.log("TurboTax Extension: Script loaded and processing...");
         const file = fileInput.files[0]; // Get selected file
         if (!file) {
             alert("Please select a CSV file.");
@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         csvDataArray = data; // Store parsed data globally
         // Store csv data in chrome.storage.local
         await chrome.storage.session.set({ transactions: data }, () => {
-            console.log("Transaction data saved:", data);
+            console.log("TurboTax Extension: Transaction data saved:", data);
         });
     }
 });
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 document.getElementById('startProcessBtn').addEventListener('click', () => {
     stopProcessing = false; // Reset stop flag
-    console.log('Extension button clicked.');
+    console.log('TurboTax Extension: Extension button clicked.');
 
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
         if (tabs[0]) {
@@ -72,13 +72,13 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                 console.warn("No transaction data found in storage.");
                 transactions = {}; // Initialize an empty object to prevent errors
             }
-            console.log("Transaction Map loaded:", transactions);
+            console.log("TurboTax Extension: Transaction Map loaded:", transactions);
 
 
             chrome.scripting.executeScript({
                 target: { tabId: tabs[0].id },
                 func: (stopFlagVarName, transactions) => {
-                    console.log("Transaction data inside executeScript:", transactions); // ✅ Debugging log
+                    console.log("TurboTax Extension: Transaction data inside executeScript:", transactions); // ✅ Debugging log
 
                     window[stopFlagVarName] = false; // Store stop flag in the window object
 
@@ -131,23 +131,22 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             }
                         });
 
-                        console.log("Transaction Map created:", map);
+                        console.log("TurboTax Extension: Transaction Map created:", map);
                         return map;
                     }
 
                     function checkWashSales(row) {
-                        if (row.WashSaleLoss != undefined) {
+                        // Locate the native checkbox input element by its id
+                        const checkboxInput = document.getElementById("stk-transaction-summary-entry-views-0-fields-11-multiSelect-choices-0");
 
-                            // Locate the native checkbox input element by its id
-                            const checkboxInput = document.getElementById("stk-transaction-summary-entry-views-0-fields-11-multiSelect-choices-0");
-
+                        if (row.WashSaleLoss != null && row.WashSaleLoss.trim() !== "") {
                             // Check if it's unchecked before clicking it
                             if (checkboxInput && !checkboxInput.checked) {
                                 // Simulate a click on the checkbox or its associated label to check it
                                 checkboxInput.click();
-                                console.log("Checkbox was unchecked and is now checked.");
+                                console.log("TurboTax Extension: Checkbox was unchecked and is now checked.");
                             } else if (checkboxInput && checkboxInput.checked) {
-                                console.log("Checkbox is already checked.");
+                                console.log("TurboTax Extension: Checkbox is already checked.");
                             } else {
                                 console.warn("Checkbox input element not found!");
                             }
@@ -156,12 +155,17 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             setTimeout(() => {
                                 if (inputField) {
                                     inputField.value = parseFloat(row.WashSaleLoss); // Replace with your desired text
-                                    console.log("WashSaleLoss value set to:", row.WashSaleLoss);
+                                    console.log("TurboTax Extension: WashSaleLoss value set to:", row.WashSaleLoss);
                                     inputField.dispatchEvent(new Event('input', { bubbles: true }));
                                 } else {
                                     console.warn("WashSaleLoss input field not found!");
                                 }
                             }, 1000); //adjust delay
+                        } else {
+                            if (checkboxInput && checkboxInput.checked) {
+                                checkboxInput.click();
+                                console.log("TurboTax Extension: Checkbox was checked and is now unchecked.");
+                            }
                         }
 
 
@@ -194,7 +198,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
 
                         if (index >= editItemButtons.length || window[stopFlagVarName]) {
-                            console.log('Process completed.');
+                            console.log('TurboTax Extension: Process completed.');
                             return;
                         }
 
@@ -203,12 +207,12 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             return;
                         }
 
-                        console.log(`Processing edit button: ${index + 1}/${editItemButtons.length}.`);
+                        console.log(`TurboTax Extension: Processing edit button: ${index + 1}/${editItemButtons.length}.`);
 
 
                         const editButton = editItemButtons[index];
 
-                        console.log(`Clicking edit button ${index + 1}...`);
+                        console.log(`TurboTax Extension: Clicking edit button ${index + 1}...`);
                         editButton.click();
                     }
 
@@ -216,11 +220,11 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-ProceedsAmtPP');
 
                         if (inputField) {
-                            console.log("Input Value:", inputField.value);
+                            console.log("TurboTax Extension: Proceeds set to:", inputField.value);
                             let proceeds = parseFloat(inputField.value.replace(/[^0-9.-]+/g, "")); // Convert to Number
                             return proceeds
                         } else {
-                            console.warn("Proceeds Input field not found!");
+                            console.warn("TurboTax Extension: Proceeds Input field not found!");
                             return null;
                         }
                     }
@@ -233,7 +237,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             const parsedDate = new Date(dateString);
 
                             if (!isNaN(parsedDate.getTime())) {
-                                console.log("Parsed Acquire Date:", parsedDate);
+                                console.log("TurboTax Extension: Parsed Acquire Date:", parsedDate);
                                 return parsedDate;  // ✅ Return valid date
                             }
                         }
@@ -250,7 +254,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             const parsedDate = new Date(dateString);
 
                             if (!isNaN(parsedDate.getTime())) {
-                                console.log("Parsed Sold Date:", parsedDate);
+                                console.log("TurboTax Extension: Parsed Sold Date:", parsedDate);
                                 return parsedDate;  // ✅ Return valid date
                             }
                         }
@@ -263,29 +267,29 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-CostBasisAmtPP');
 
                         if (!inputField) {
-                            console.warn("CostBasis input field not found!");
+                            console.warn("TurboTax Extension: CostBasis input field not found!");
                             return;
                         }
 
                         inputField.value = parseFloat(row.CostBasis);  // ✅ Set value from transactionMap
                         inputField.dispatchEvent(new Event('input', { bubbles: true })); // ✅ Trigger input event
 
-                        console.log(`Value set to: ${row.CostBasis}`); // ✅ Log actual value
+                        console.log(`TurboTax Extension: Value set to: ${row.CostBasis}`); // ✅ Log actual value
                     }
 
                     function clickBackButton(index) {
 
                         if (window[stopFlagVarName]) {
-                            console.log('Process stopped mid-execution.');
+                            console.log('TurboTax Extension: Process stopped mid-execution.');
                             return;
                         }
 
                         const backButton = document.querySelector('button[aria-label="Back"]');
                         if (backButton) {
-                            console.log(`Found "Back" button for edit ${index + 1}...`);
+                            console.log(`TurboTax Extension: Found "Back" button for edit ${index + 1}...`);
                             backButton.click();
                         } else {
-                            console.warn(`"Back" button not found for edit ${index + 1}.`);
+                            console.warn(`TurboTax Extension: "Back" button not found for edit ${index + 1}.`);
                             return;
                         }
 
@@ -296,7 +300,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     }
 
                     function startProcess() {
-                        console.log('Starting process...');
+                        console.log('TurboTax Extension: Starting process...');
                         processTransaction(0); // Start processing
                     }
 
@@ -311,7 +315,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 // Stop button logic
 document.getElementById('stopProcessBtn').addEventListener('click', () => {
     stopProcessing = true;
-    console.log('Stopping process...');
+    console.log('TurboTax Extension: Stopping process...');
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
