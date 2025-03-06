@@ -26,4 +26,8 @@ Then follow these steps:
 3. **Start Processing, and you will observe the extension automatically fill in the cost basis.**
    - Click "Start Process".
    - Data should be automatically filled in the webpage.
+
+4. **Turn Pages in TurboTax manually**
+   - When the transaction list spreads across multiple pages in TurboTax, manually navigating to each page is required.
    - When all the transaction in a page is done, navigate to the next page in TurboTax and click  "Start Process" in the popup again to start the process.
+   - The CSV data stays in memory while the extension is loaded. The storage is cleared if the extension is disabled, reloaded or updated and when the browser restarts. 
