@@ -94,9 +94,18 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             let dateSold = parseDateSold();
                             let proceeds = readProceeds();
                             let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
-                            inputCostBasis(key);
-                            // checkOtherBoxesToFill();
+                            const row = transactionMap[key]; // Get value from the map
+
+                            if (row !== undefined) {
+                                inputCostBasis(row);
+                                checkWashSales(row);
+                            } else {
+                                console.warn(`Key "${key}" not found in transactionMap.`);
+                            }
+
+                            setTimeout(() => {
                             clickBackButton(index);
+                            }, 1500); //adjust delay
                         }, 5000);
                     }
 
@@ -117,9 +126,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                                 if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
                                     // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
                                     let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
-                                    let value = parseFloat(row.CostBasis); // Convert to Number
-
-                                    map[key] = value;
+                                    map[key] = row;
                                 }
                             }
                         });
@@ -128,12 +135,36 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         return map;
                     }
 
-                    function checkOtherBoxesToFill() {
-                        // Locate the checkbox element by its class name (or another selector if needed)
-                        const checkbox = document.querySelector('.Checkbox-check-dc97798');
+                    function checkWashSales(row) {
+                        if (row.WashSaleLoss != undefined) {
 
-                        // Simulate a click to toggle the checkbox state
-                        checkbox.click();
+                            // Locate the native checkbox input element by its id
+                            const checkboxInput = document.getElementById("stk-transaction-summary-entry-views-0-fields-11-multiSelect-choices-0");
+
+                            // Check if it's unchecked before clicking it
+                            if (checkboxInput && !checkboxInput.checked) {
+                                // Simulate a click on the checkbox or its associated label to check it
+                                checkboxInput.click();
+                                console.log("Checkbox was unchecked and is now checked.");
+                            } else if (checkboxInput && checkboxInput.checked) {
+                                console.log("Checkbox is already checked.");
+                            } else {
+                                console.warn("Checkbox input element not found!");
+                            }
+
+                            const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-12-collection-values-0-fieldCollection-values-1-input-WashSaleLossDisallowedAmtPP");
+                            setTimeout(() => {
+                                if (inputField) {
+                                    inputField.value = parseFloat(row.WashSaleLoss); // Replace with your desired text
+                                    console.log("WashSaleLoss value set to:", row.WashSaleLoss);
+                                    inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                                } else {
+                                    console.warn("WashSaleLoss input field not found!");
+                                }
+                            }, 1000); //adjust delay
+                        }
+
+
                     }
 
 
@@ -189,7 +220,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             let proceeds = parseFloat(inputField.value.replace(/[^0-9.-]+/g, "")); // Convert to Number
                             return proceeds
                         } else {
-                            console.warn("Input field not found!");
+                            console.warn("Proceeds Input field not found!");
                             return null;
                         }
                     }
@@ -228,25 +259,18 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         return null;  // ✅ Return null instead of undefined
                     }
 
-                    function inputCostBasis(key) {
+                    function inputCostBasis(row) {
                         const inputField = document.getElementById('stk-transaction-summary-entry-views-0-fields-9-input-CostBasisAmtPP');
 
                         if (!inputField) {
-                            console.warn("Input field not found!");
+                            console.warn("CostBasis input field not found!");
                             return;
                         }
 
-                        console.log(`Setting value for key: ${key}`);
-                        const costBasis = transactionMap[key]; // Get value from the map
+                        inputField.value = parseFloat(row.CostBasis);  // ✅ Set value from transactionMap
+                        inputField.dispatchEvent(new Event('input', { bubbles: true })); // ✅ Trigger input event
 
-                        if (costBasis !== undefined) {
-                            inputField.value = costBasis;  // ✅ Set value from transactionMap
-                            inputField.dispatchEvent(new Event('input', { bubbles: true })); // ✅ Trigger input event
-
-                            console.log(`Value set to: ${costBasis}`); // ✅ Log actual value
-                        } else {
-                            console.warn(`Key "${key}" not found in transactionMap.`);
-                        }
+                        console.log(`Value set to: ${row.CostBasis}`); // ✅ Log actual value
                     }
 
                     function clickBackButton(index) {
