@@ -1,5 +1,4 @@
 let stopProcessing = false; // Global flag to stop the process
-let csvDataArray = []; // Store parsed CSV data
 
 
 /**
@@ -25,7 +24,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             const csvContent = event.target.result;
             outputElement.textContent = csvContent; // Display raw CSV data
             await parseCSV(csvContent);
-            await createTransactionMap(csvDataArray);
         };
         reader.readAsText(file);
     });
@@ -53,48 +51,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         csvDataArray = data; // Store parsed data globally
-    }
-
-    /**
-     * 
-     * @param {Array} csvDataArray 
-     */
-    async function createTransactionMap(csvDataArray) {
-        let transactionObject = {}; // Use an object instead of a Map
-
-        csvDataArray.forEach(row => {
-            // Ensure required keys exist before constructing the map
-            if (row.DateAcquired && row.DateSold && row.Proceeds && row.CostBasis) {
-                let dateAcquired = new Date(row.DateAcquired); // Convert to Date object
-                let dateSold = new Date(row.DateSold); // Convert to Date object
-                let proceeds = parseFloat(row.Proceeds); // Convert to Number
-
-                if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
-                    // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
-                    let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
-                    let value = parseFloat(row.CostBasis); // Convert to Number
-
-                    transactionObject[key] = value;
-                }
-            }
+        // Store csv data in chrome.storage.local
+        await chrome.storage.session.set({ transactions: data }, () => {
+            console.log("Transaction data saved:", data);
         });
-
-        // Store transaction data in chrome.storage.local
-        await chrome.storage.session.set({ transactionMap: transactionObject }, () => {
-            console.log("Transaction Map saved:", transactionObject);
-        });
-    }
-
-    function generateTransactionKey(dateAcquired, dateSold, proceeds) {
-        if (!dateAcquired || !dateSold || isNaN(proceeds)) {
-            console.warn("Invalid key parameters:", { dateAcquired, dateSold, proceeds });
-            return null;
-        }
-        return `${getFormattedDate(dateAcquired)}_${getFormattedDate(dateSold)}_${proceeds}`;
-    }
-
-    function getFormattedDate(date = new Date()) {
-        return `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}_${String(date.getDate()).padStart(2, '0')}`;
     }
 });
 
@@ -107,20 +67,23 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
         if (tabs[0]) {
 
             // ✅ Load saved transaction data first
-            let { transactionMap } = await chrome.storage.session.get(['transactionMap']);
-            if (!transactionMap) {
+            let { transactions } = await chrome.storage.session.get(['transactions']);
+            if (!transactions) {
                 console.warn("No transaction data found in storage.");
-                transactionMap = {}; // Initialize an empty object to prevent errors
+                transactions = {}; // Initialize an empty object to prevent errors
             }
-            console.log("Transaction Map loaded:", transactionMap);
+            console.log("Transaction Map loaded:", transactions);
 
 
             chrome.scripting.executeScript({
                 target: { tabId: tabs[0].id },
-                func: (stopFlagVarName, transactionMap) => {
-                    console.log("Transaction Map inside executeScript:", transactionMap); // ✅ Debugging log
+                func: (stopFlagVarName, transactions) => {
+                    console.log("Transaction data inside executeScript:", transactions); // ✅ Debugging log
 
                     window[stopFlagVarName] = false; // Store stop flag in the window object
+
+                    // Create a transactionMap from the transactions array
+                    let transactionMap = createTransactionMap(transactions);
 
                     function processTransaction(index) {
                         clickEditButton(index);
@@ -132,9 +95,47 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             let proceeds = readProceeds();
                             let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
                             inputCostBasis(key);
+                            // checkOtherBoxesToFill();
                             clickBackButton(index);
                         }, 5000);
                     }
+
+                    /**
+                     * 
+                     * @param {Array} csvDataArray 
+                     */
+                    function createTransactionMap(csvDataArray) {
+                        let map = new Map(); // Use an object instead of a Map
+
+                        csvDataArray.forEach(row => {
+                            // Ensure required keys exist before constructing the map
+                            if (row.DateAcquired && row.DateSold && row.Proceeds && row.CostBasis) {
+                                let dateAcquired = new Date(row.DateAcquired); // Convert to Date object
+                                let dateSold = new Date(row.DateSold); // Convert to Date object
+                                let proceeds = parseFloat(row.Proceeds); // Convert to Number
+
+                                if (!isNaN(dateAcquired) && !isNaN(dateSold) && !isNaN(proceeds)) {
+                                    // let key = `${dateAcquired.toDateString()}_${dateSold.toDateString()}_${proceeds}`;
+                                    let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
+                                    let value = parseFloat(row.CostBasis); // Convert to Number
+
+                                    map[key] = value;
+                                }
+                            }
+                        });
+
+                        console.log("Transaction Map created:", map);
+                        return map;
+                    }
+
+                    function checkOtherBoxesToFill() {
+                        // Locate the checkbox element by its class name (or another selector if needed)
+                        const checkbox = document.querySelector('.Checkbox-check-dc97798');
+
+                        // Simulate a click to toggle the checkbox state
+                        checkbox.click();
+                    }
+
 
                     function selectTypeOfInvestmentRSU() {
                         // Locate the select element by its unique data attribute or another selector
@@ -236,7 +237,6 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                         }
 
                         console.log(`Setting value for key: ${key}`);
-                        console.log(`Transaction Map:`, transactionMap);
                         const costBasis = transactionMap[key]; // Get value from the map
 
                         if (costBasis !== undefined) {
@@ -278,7 +278,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
 
                     startProcess();
                 },
-                args: ['stopProcessing', transactionMap]
+                args: ['stopProcessing', transactions]
             });
         }
     });
