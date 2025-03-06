@@ -1,8 +1,12 @@
 # TurboTax 1099B Chrome Extensions
 
-Before using this extension, please import your **1099-B** transactions into **TurboTax** via **Morgan Stanley at Work** integration, then follow these steps:
+Before using this extension, please import your **1099-B** transactions into **TurboTax** via **Morgan Stanley at Work** integration. 
 
-## Steps to Upload and Process CSV
+When enterinng Morgan Stanley credentials, make sure to remove special characters in the username, for example: DS-123456-00 -> DS12345600
+
+Then follow these steps:
+
+## Steps
 
 1. **Navigate to the Transactions Page**  
    - Open **TurboTax** and go to:  
