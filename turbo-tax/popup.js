@@ -104,7 +104,7 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             }
 
                             setTimeout(() => {
-                            clickBackButton(index);
+                                clickBackButton(index);
                             }, 1500); //adjust delay
                         }, 5000);
                     }
@@ -136,39 +136,57 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     }
 
                     function checkWashSales(row) {
-                        // Locate the native checkbox input element by its id
-                        const checkboxInput = document.getElementById("stk-transaction-summary-entry-views-0-fields-11-multiSelect-choices-0");
-
                         if (row.WashSaleLoss != null && row.WashSaleLoss.trim() !== "") {
-                            // Check if it's unchecked before clicking it
-                            if (checkboxInput && !checkboxInput.checked) {
-                                // Simulate a click on the checkbox or its associated label to check it
-                                checkboxInput.click();
-                                console.log("TurboTax Extension: Checkbox was unchecked and is now checked.");
-                            } else if (checkboxInput && checkboxInput.checked) {
-                                console.log("TurboTax Extension: Checkbox is already checked.");
-                            } else {
-                                console.warn("Checkbox input element not found!");
-                            }
-
-                            const inputField = document.getElementById("stk-transaction-summary-entry-views-0-fields-12-collection-values-0-fieldCollection-values-1-input-WashSaleLossDisallowedAmtPP");
-                            setTimeout(() => {
-                                if (inputField) {
-                                    inputField.value = parseFloat(row.WashSaleLoss); // Replace with your desired text
-                                    console.log("TurboTax Extension: WashSaleLoss value set to:", row.WashSaleLoss);
+                            waitForElementById("stk-transaction-summary-entry-views-0-fields-11-multiSelect-choices-0", 5000)
+                                .then(checkboxInput => {
+                                    if (!checkboxInput.checked) {
+                                        checkboxInput.click(); 
+                                        checkboxInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                        console.log("Checkbox checked!");
+                                    } else {
+                                        console.warn("Checkbox already checked!");
+                                    }
+                    
+                                    // Wait for the input to appear with a flexible selector
+                                    return waitForInputField('input[placeholder="$"][data-binding*="WashSaleLossDisallowedAmtPP"]', 10000);
+                                })
+                                .then(inputField => {
+                                    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                    nativeSetter.call(inputField, parseFloat(row.WashSaleLoss));
                                     inputField.dispatchEvent(new Event('input', { bubbles: true }));
-                                } else {
-                                    console.warn("WashSaleLoss input field not found!");
-                                }
-                            }, 1000); //adjust delay
-                        } else {
-                            if (checkboxInput && checkboxInput.checked) {
-                                checkboxInput.click();
-                                console.log("TurboTax Extension: Checkbox was checked and is now unchecked.");
-                            }
+                                    inputField.dispatchEvent(new Event('change', { bubbles: true }));
+                    
+                                    console.log("Input filled!");
+                                })
+                                .catch(error => {
+                                    console.warn("TurboTax Extension: Failed to find or fill input:", error);
+                                });
                         }
+                    }
 
-
+                                        
+                    function waitForElementById(id, timeout = 5000) {
+                        return new Promise((resolve, reject) => {
+                            const start = Date.now();
+                            (function check() {
+                                const el = document.getElementById(id);
+                                if (el) return resolve(el);
+                                if (Date.now() - start > timeout) return reject(`Element with id "${id}" not found after ${timeout}ms`);
+                                requestAnimationFrame(check);
+                            })();
+                        });
+                    }
+                    
+                    function waitForInputField(selector, timeout = 5000) {
+                        return new Promise((resolve, reject) => {
+                            const start = Date.now();
+                            (function check() {
+                                const el = document.querySelector(selector);
+                                if (el) return resolve(el);
+                                if (Date.now() - start > timeout) return reject(`Element with selector "${selector}" not found after ${timeout}ms`);
+                                requestAnimationFrame(check);
+                            })();
+                        });
                     }
 
 
