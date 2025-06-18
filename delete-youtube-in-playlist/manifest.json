@@ -1,0 +1,14 @@
+{
+  "name": "YouTube Playlist Item Deleter",
+  "description": "Delete items from YouTube playlists",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "hello.html",
+    "default_icon": "profile_image.png"
+  },
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": [
+    "*://*.youtube.com/playlist?*"
+  ]
+}
