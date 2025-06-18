@@ -31,4 +31,7 @@ Then follow these steps:
 4. **If the transaction list spreads across multiple pages**
    - When the transaction list spreads across multiple pages in TurboTax, manually navigating to each page is required.
    - When all the transaction in a page is done, navigate to the next page in TurboTax and click  "Start Process" in the popup again to start the process.
-   - No need to re-process the CSV file - unless the extension is disabled, reloaded or updated and when the browser restarts. 
+   - No need to re-process the CSV file - unless the extension is disabled, reloaded or updated and when the browser restarts.
+  
+## Disclaimer:
+This tool is an utility for conveniences. Mistakes could be made, and it's users' responsibility to ensure the data input is correct!
