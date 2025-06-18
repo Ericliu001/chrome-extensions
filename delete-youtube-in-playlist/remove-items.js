@@ -40,28 +40,34 @@ function processButtons(buttons, index) {
     console.log(`Clicking dropdown button ${index + 1}...`);
     button.click(); // Click the dropdown button
 
-    // Wait for the dropdown menu to appear
-    setTimeout(() => {
-        // Locate the "Remove from Watch later" button in the dropdown
+    // Wait for the dropdown menu to appear using MutationObserver
+    const observer = new MutationObserver((mutations, obs) => {
         const removeButton = Array.from(
             document.querySelectorAll('ytd-menu-service-item-renderer yt-formatted-string')
         ).find((el) => el.textContent.trim() === 'Remove from Watch later');
 
         if (removeButton) {
             console.log(`Clicking "Remove from Watch later" button for dropdown ${index + 1}...`);
-            removeButton.click(); // Click the "Remove from Watch later" button
+            removeButton.click();
+            obs.disconnect();
 
-            // Wait for any animations or updates to complete before moving to the next button
             setTimeout(() => {
-                processButtons(buttons, index + 1); // Process the next button
+                processButtons(buttons, index + 1);
             }, 750);
-        } else {
-            console.warn(`"Remove from Watch later" button not found for dropdown ${index + 1}. Retrying...`);
-            setTimeout(() => {
-                processButtons(buttons, index + 1); // Retry the next button
-            }, 1500);
         }
-    }, 1000); // Increased delay for the dropdown to render
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Set a fallback timeout in case the observer doesn't trigger
+    setTimeout(() => {
+        observer.disconnect();
+        console.warn(`"Remove from Watch later" button not found for dropdown ${index + 1} in time. Retrying...`);
+        processButtons(buttons, index + 1);
+    }, 5000);
 }
 
 // Start the process when the script is loaded
