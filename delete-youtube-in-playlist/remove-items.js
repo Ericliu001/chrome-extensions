@@ -24,6 +24,7 @@ function processButtons(buttons, index) {
     if (index >= buttons.length) {
         console.log('Finished processing all buttons.');
         window.stopProcessing = true; // Set the stop flag to true
+        return;
     }
 
     const button = buttons[index];

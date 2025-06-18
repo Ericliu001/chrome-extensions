@@ -3,7 +3,7 @@ let stopProcessing = false; // Global flag to stop the process
 
 document.getElementById('startProcessBtn').addEventListener('click', () => {
     stopProcessing = false; // Reset stop flag
-    console.log('TurboTax Extension: Extension button clicked.');
+    console.log('Youtube Extension: Extension button clicked.');
 
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
         if (tabs[0]) {
