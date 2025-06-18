@@ -1,4 +1,7 @@
 console.log('Content script loaded.');
+if (window.stopProcessing === undefined) {
+    window.stopProcessing = false;
+}
 
 var clickedButtons = new Set(); // Set to keep track of clicked buttons
 
@@ -19,12 +22,8 @@ function startProcess() {
 
 function processButtons(buttons, index) {
     if (index >= buttons.length) {
-        console.log('Finished processing all buttons. Reloading the page in 5 seconds...');
-
-        reloadPageTimeoutID = setTimeout(() => {
-            window.location.reload();
-        }, 5000);
-        return;
+        console.log('Finished processing all buttons.');
+        window.stopProcessing = true; // Set the stop flag to true
     }
 
     const button = buttons[index];
@@ -52,7 +51,9 @@ function processButtons(buttons, index) {
             obs.disconnect();
 
             setTimeout(() => {
-                processButtons(buttons, index + 1);
+                 if (!window.stopProcessing) {
+                    processButtons(buttons, index + 1);
+                 }
             }, 750);
         }
     });
