@@ -52,10 +52,10 @@ function processButtons(buttons, index) {
             obs.disconnect();
 
             setTimeout(() => {
-                 if (!window.stopProcessing) {
+                if (!window.stopProcessing) {
                     processButtons(buttons, index + 1);
                  }
-            }, 750);
+            }, 2000 + Math.random() * 3000);
         }
     });
 
