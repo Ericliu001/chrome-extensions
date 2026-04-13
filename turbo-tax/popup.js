@@ -85,27 +85,103 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     // Create a transactionMap from the transactions array
                     let transactionMap = createTransactionMap(transactions);
 
+                    // Track which page we should be on (read from current pagination state)
+                    let targetPage = getCurrentPage();
+                    console.log(`TurboTax Extension: Starting on page ${targetPage}`);
+
+                    /**
+                     * Reads the current page number from the pagination button's aria-label.
+                     * e.g. "Go to next page, currently on page 4" → 4
+                     */
+                    function getCurrentPage() {
+                        // Try the "next page" button first
+                        const nextBtn = document.querySelector('button[aria-label^="Go to next page"]');
+                        if (nextBtn) {
+                            const match = nextBtn.getAttribute('aria-label').match(/currently on page (\d+)/);
+                            if (match) return parseInt(match[1]);
+                        }
+                        // Fall back to "previous page" button (in case we're on the last page)
+                        const prevBtn = document.querySelector('button[aria-label^="Go to previous page"]');
+                        if (prevBtn) {
+                            const match = prevBtn.getAttribute('aria-label').match(/currently on page (\d+)/);
+                            if (match) return parseInt(match[1]);
+                        }
+                        return 1; // Default
+                    }
+
+                    /**
+                     * Jumps directly to targetPage using the page number button.
+                     * Calls callback() once we arrive, or calls onFail() if the button doesn't exist.
+                     */
+                    function navigateToPage(page, callback, onFail) {
+                        const current = getCurrentPage();
+                        console.log(`TurboTax Extension: Currently on page ${current}, target is page ${page}`);
+
+                        if (current === page) {
+                            callback();
+                            return;
+                        }
+
+                        // Click the direct page number button: aria-label="Go to Page N"
+                        const pageBtn = document.querySelector(`button[aria-label="Go to Page ${page}"]`);
+                        if (pageBtn) {
+                            console.log(`TurboTax Extension: Clicking page ${page} button directly...`);
+                            pageBtn.click();
+                            setTimeout(() => {
+                                callback();
+                            }, 3000);
+                        } else {
+                            console.log(`TurboTax Extension: Page ${page} button not found. Last page is likely ${current}.`);
+                            if (onFail) onFail();
+                        }
+                    }
+
                     function processTransaction(index) {
-                        clickEditButton(index);
+                        const clicked = clickEditButton(index);
+
+                        if (!clicked) {
+                            if (window[stopFlagVarName]) {
+                                console.log('TurboTax Extension: Process stopped by user.');
+                                return;
+                            }
+                            // All items on this page are done — advance to next page
+                            targetPage++;
+                            console.log(`TurboTax Extension: Page done. Advancing to page ${targetPage}...`);
+                            navigateToPage(targetPage, () => {
+                                // Verify we actually reached the new page
+                                if (getCurrentPage() === targetPage) {
+                                    processTransaction(0);
+                                } else {
+                                    console.log('TurboTax Extension: All transactions processed across all pages.');
+                                }
+                            }, () => {
+                                console.log('TurboTax Extension: All transactions processed across all pages.');
+                            });
+                            return;
+                        }
 
                         setTimeout(() => {
-                            selectTypeOfInvestmentRSU();
-                            let dateAcquired = parseDateAcquired();
-                            let dateSold = parseDateSold();
-                            let proceeds = readProceeds();
-                            let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
-                            const row = transactionMap[key]; // Get value from the map
+                            try {
+                                selectTypeOfInvestmentRSU();
+                                let dateAcquired = parseDateAcquired();
+                                let dateSold = parseDateSold();
+                                let proceeds = readProceeds();
+                                let key = generateTransactionKey(dateAcquired, dateSold, proceeds);
+                                const row = transactionMap[key]; // Get value from the map
 
-                            if (row !== undefined) {
-                                inputCostBasis(row);
-                                checkWashSales(row);
-                            } else {
-                                console.warn(`Key "${key}" not found in transactionMap.`);
+                                if (row !== undefined) {
+                                    inputCostBasis(row);
+                                    checkWashSales(row);
+                                } else {
+                                    console.warn(`Key "${key}" not found in transactionMap.`);
+                                }
+
+                                setTimeout(() => {
+                                    clickBackButton(index);
+                                }, 1500); //adjust delay
+                            } catch (error) {
+                                console.error(`TurboTax Extension: Error processing transaction at index ${index}:`, error);
                             }
-
-                            setTimeout(() => {
-                                clickBackButton(index);
-                            }, 1500); //adjust delay
                         }, 5000);
                     }
 
@@ -212,26 +288,52 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                     function getFormattedDate(date = new Date()) {
                         return `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}_${String(date.getDate()).padStart(2, '0')}`;
                     }
+                    /**
+                     * Returns true if an edit button was clicked, false if page is done.
+                     */
                     function clickEditButton(index) {
-                        const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
-
-                        if (index >= editItemButtons.length || window[stopFlagVarName]) {
-                            console.log('TurboTax Extension: Process completed.');
-                            return;
+                        if (window[stopFlagVarName]) {
+                            console.log('TurboTax Extension: Process stopped by user.');
+                            return false;
                         }
 
-                        if (editItemButtons.length === 0) {
-                            console.warn('No edit buttons found.');
-                            return;
+                        const editItemButtons = document.querySelectorAll('button[aria-label="EditItem"]');
+
+                        if (editItemButtons.length === 0 || index >= editItemButtons.length) {
+                            console.log('TurboTax Extension: All items on this page processed.');
+                            return false; // Signal that this page is done
                         }
 
                         console.log(`TurboTax Extension: Processing edit button: ${index + 1}/${editItemButtons.length}.`);
 
-
                         const editButton = editItemButtons[index];
-
                         console.log(`TurboTax Extension: Clicking edit button ${index + 1}...`);
                         editButton.click();
+                        return true;
+                    }
+
+                    /**
+                     * Attempts to navigate to the next page of transactions.
+                     * Returns true if navigation was triggered, false if on last page.
+                     */
+                    function goToNextPage() {
+                        // Find the next-page button by aria-label prefix
+                        const nextPageBtn = document.querySelector('button[aria-label^="Go to next page"]');
+
+                        if (!nextPageBtn) {
+                            console.log('TurboTax Extension: No next page button found. All pages complete.');
+                            return false;
+                        }
+
+                        // Check if the button is disabled
+                        if (nextPageBtn.disabled || nextPageBtn.getAttribute('aria-disabled') === 'true') {
+                            console.log('TurboTax Extension: Next page button is disabled. All pages complete.');
+                            return false;
+                        }
+
+                        console.log('TurboTax Extension: Navigating to next page...');
+                        nextPageBtn.click();
+                        return true;
                     }
 
                     function readProceeds() {
@@ -311,9 +413,19 @@ document.getElementById('startProcessBtn').addEventListener('click', () => {
                             return;
                         }
 
-                        // Wait for 5 seconds before calling processButtons
+                        // Wait for page to reload after Back, then re-navigate to our target page
                         setTimeout(() => {
-                            processTransaction(index + 1);
+                            const currentPage = getCurrentPage();
+                            if (currentPage !== targetPage) {
+                                console.log(`TurboTax Extension: Back button reset to page ${currentPage}. Re-navigating to page ${targetPage}...`);
+                                navigateToPage(targetPage, () => {
+                                    processTransaction(index + 1);
+                                }, () => {
+                                    console.error(`TurboTax Extension: Failed to navigate back to page ${targetPage}.`);
+                                });
+                            } else {
+                                processTransaction(index + 1);
+                            }
                         }, 5000);
                     }
 
